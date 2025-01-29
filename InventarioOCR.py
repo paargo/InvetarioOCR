@@ -22,6 +22,8 @@ output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
 
 @app.route('/extract_code', methods=['POST'])
 def extract_code():
+    if 'image' not in request.files:
+     return jsonify({"error": "No se encontró la clave 'image' en la solicitud"}), 400
     # Cargar la imagen desde la solicitud
     file = request.files['image']
     image = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
