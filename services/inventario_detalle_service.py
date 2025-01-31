@@ -27,7 +27,7 @@ def crear_inventario_detalle(inventario_id, deposito_id, codigo_alfa, cantidad):
     
     # Insertar el nuevo detalle de inventario
     cursor.execute("INSERT INTO inventario_detalle (inventario_id, deposito_id, codigo_alfa, cantidad) VALUES (?, ?, ?, ?)", 
-                   (inventario_id, deposito_id, codigo_alfa, cantidad))
+                    (inventario_id, deposito_id, codigo_alfa, cantidad))
     conn.commit()
     conn.close()
     return {"success": True, "data": "Detalle de inventario creado exitosamente."}
@@ -116,74 +116,3 @@ def listar_inventarios_detalle(filtro_inventario_id=None):
     conn.close()
     
     return [{"id": det[0], "inventario_id": det[1], "deposito_id": det[2], "codigo_alfa": det[3], "cantidad": det[4]} for det in detalles]
-
-
-def crear_inventario(descripcion):
-    conn = conectar_db()
-    cursor = conn.cursor()
-    
-    # Insertar el nuevo inventario
-    cursor.execute("INSERT INTO inventario (descripcion,estado) VALUES (?,?)", (descripcion,'En Proceso',))
-    conn.commit()
-    inventario_id = cursor.lastrowid
-    conn.close()
-    return {"success": True, "data": {"id": inventario_id, "descripcion": descripcion, "estado": 'En Proceso'}}
-
-def modificar_inventario(id, fecha, estado=None, descripcion=None):
-    if estado not in ['En Proceso', 'Finalizado']:
-        return {"success": False, "data": "Estado inválido. Debe ser 'En Proceso' o 'Finalizado'."}
-    
-    conn = conectar_db()
-    cursor = conn.cursor()
-    
-    # Verificar si el inventario existe
-    cursor.execute("SELECT id FROM inventario WHERE id = ?", (id,))
-    if not cursor.fetchone():
-        conn.close()
-        return {"success": False, "data": "Inventario no encontrado."}
-    
-    # Actualizar el inventario
-    cursor.execute("""
-        UPDATE inventario
-        SET estado = COALESCE(?, estado),
-            descripcion = COALESCE(?, descripcion),
-            fecha = COALESCE(?, fecha)
-        WHERE id = ?
-    """, (estado, descripcion, fecha, id))
-    conn.commit()
-    conn.close()
-    return {"success": True, "data": "Inventario actualizado."}
-
-def eliminar_inventario(id):
-    conn = conectar_db()
-    cursor = conn.cursor()
-    
-    # Verificar si el inventario existe
-    cursor.execute("SELECT id FROM inventario WHERE id = ?", (id,))
-    if not cursor.fetchone():
-        conn.close()
-        return {"success": False, "data": "Inventario no encontrado."}
-    
-    # Eliminar inventario
-    cursor.execute("DELETE FROM inventario WHERE id = ?", (id,))
-    conn.commit()
-    conn.close()
-    return {"success": True, "data": "Inventario eliminado."}
-
-def consultar_inventario(id):
-    conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, fecha, estado, descripcion FROM inventario WHERE id = ?", (id,))
-    inventario = cursor.fetchone()
-    conn.close()
-    return {"id": inventario[0], "fecha": inventario[1], "estado": inventario[2], "descripcion": inventario[3]} if inventario else {"error": "Inventario no encontrado."}
-
-def listar_inventarios():
-    conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, fecha, estado, descripcion FROM inventario")
-    inventarios = cursor.fetchall()
-    conn.close()
-    
-    return [{"id": inv[0], "fecha": inv[1], "estado": inv[2], "descripcion": inv[3]} for inv in inventarios]
-

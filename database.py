@@ -20,6 +20,7 @@ def crear_tablas():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS inventario (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            descripcion TEXT,
             fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
             estado TEXT CHECK (estado IN ('En Proceso', 'Finalizado')) NOT NULL
         )
@@ -34,13 +35,6 @@ def crear_tablas():
             precio REAL,
             proveedor_codigo TEXT,
             proveedor_nombre TEXT
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS inventario (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            inventario_id INTEGER NOT NULL,
-            fecha DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
