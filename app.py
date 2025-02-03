@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Configuración de la API
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://invetarioocr.onrender.com/"
 
 def listar_depositos():
     response = requests.get(f"{API_URL}/depositos/")
