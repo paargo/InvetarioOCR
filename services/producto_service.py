@@ -3,6 +3,9 @@ from pydantic import BaseModel
 from typing import Optional, List
 from fastapi import HTTPException
 import sqlite3
+import csv
+from io import StringIO
+import pandas as pd
 
 # Modelo de Producto con nuevos campos
 class ProductoCreate(BaseModel):
@@ -42,6 +45,66 @@ def crear_producto(producto: ProductoCreate):
         
         conn.commit()
         return {"success": True, "message": "Producto creado exitosamente"}
+    
+    except sqlite3.Error as e:
+        return {"success": False, "message": f"Error en la base de datos: {str(e)}"}
+    
+    finally:
+        db.close()
+
+def crear_productos_desde_csv(csv_content: str):
+    conn = conectar_db()
+    db = conn.cursor()
+    productos_creados = []
+    try:
+        reader = csv.DictReader(StringIO(csv_content))
+        for row in reader:
+            producto = ProductoCreate(**row)
+            # Verificar si el código_alfa ya existe
+            db.execute("SELECT id FROM producto WHERE codigo_alfa = ?", (producto.codigo_alfa,))
+            if db.fetchone():
+                continue  # Saltar productos con código_alfa duplicado
+
+            # Insertar nuevo producto
+            db.execute("""
+                INSERT INTO producto (codigo_alfa, codigo_barras, descripcion, precio, proveedor_codigo, proveedor_nombre)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (producto.codigo_alfa, producto.codigo_barras, producto.descripcion, producto.precio, producto.proveedor_codigo, producto.proveedor_nombre))
+            
+            productos_creados.append(producto.codigo_alfa)
+        
+        conn.commit()
+        return {"success": True, "message": "Productos creados exitosamente", "data": productos_creados}
+    
+    except sqlite3.Error as e:
+        return {"success": False, "message": f"Error en la base de datos: {str(e)}"}
+    
+    finally:
+        db.close()
+
+def crear_productos_desde_xlsx(xlsx_content: bytes):
+    conn = conectar_db()
+    db = conn.cursor()
+    productos_creados = []
+    try:
+        df = pd.read_excel(xlsx_content)
+        for _, row in df.iterrows():
+            producto = ProductoCreate(**row.to_dict())
+            # Verificar si el código_alfa ya existe
+            db.execute("SELECT id FROM producto WHERE codigo_alfa = ?", (producto.codigo_alfa,))
+            if db.fetchone():
+                continue  # Saltar productos con código_alfa duplicado
+
+            # Insertar nuevo producto
+            db.execute("""
+                INSERT INTO producto (codigo_alfa, codigo_barras, descripcion, precio, proveedor_codigo, proveedor_nombre)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (producto.codigo_alfa, producto.codigo_barras, producto.descripcion, producto.precio, producto.proveedor_codigo, producto.proveedor_nombre))
+            
+            productos_creados.append(producto.codigo_alfa)
+        
+        conn.commit()
+        return {"success": True, "message": "Productos creados exitosamente", "data": productos_creados}
     
     except sqlite3.Error as e:
         return {"success": False, "message": f"Error en la base de datos: {str(e)}"}

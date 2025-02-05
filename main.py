@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File
 from typing import List, Optional
 from pydantic import BaseModel
 from services import deposito_service, inventario_service, inventario_detalle_service
@@ -91,6 +91,24 @@ def crear_producto(producto: producto_service.ProductoCreate):
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
     return {"mensaje": result["message"]}
+
+@app.post("/productos/archivo", response_model=dict)
+async def crear_productos_archivo(file: UploadFile = File(...)):
+    """Crea productos a partir de un archivo CSV o XLSX."""
+    try:
+        content = await file.read()
+        if file.filename.endswith('.csv'):
+            result = producto_service.crear_productos_desde_csv(content.decode("utf-8"))
+        elif file.filename.endswith('.xlsx'):
+            result = producto_service.crear_productos_desde_xlsx(content)
+        else:
+            raise HTTPException(status_code=400, detail="Formato de archivo no soportado")
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+        return {"mensaje": "Productos creados exitosamente", "data": result["data"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.put("/productos/{codigo_alfa}", response_model=dict)
 def modificar_producto(codigo_alfa: str, producto: producto_service.ProductoUpdate):
