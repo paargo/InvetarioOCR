@@ -1,7 +1,7 @@
 #from database import get_db
 from pydantic import BaseModel
 from typing import Optional, List
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile, File
 import sqlite3
 import csv
 from io import StringIO
@@ -41,7 +41,7 @@ def crear_producto(producto: ProductoCreate):
         db.execute("""
             INSERT INTO producto (codigo_alfa, codigo_barras, descripcion, precio, proveedor_codigo, proveedor_nombre)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (producto.codigo_alfa, producto.codigo_barras, producto.descripcion, producto.precio, producto.proveedor_codigo, producto.proveedor_nombre))
+        """, (producto.codigo_alfa, producto.codigo_barras, producto.descripcion, producto.precio, str(producto.proveedor_codigo), producto.proveedor_nombre))
         
         conn.commit()
         return {"success": True, "message": "Producto creado exitosamente"}
@@ -69,7 +69,7 @@ def crear_productos_desde_csv(csv_content: str):
             db.execute("""
                 INSERT INTO producto (codigo_alfa, codigo_barras, descripcion, precio, proveedor_codigo, proveedor_nombre)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (producto.codigo_alfa, producto.codigo_barras, producto.descripcion, producto.precio, producto.proveedor_codigo, producto.proveedor_nombre))
+            """, (producto.codigo_alfa, producto.codigo_barras, producto.descripcion, producto.precio, str(producto.proveedor_codigo), producto.proveedor_nombre))
             
             productos_creados.append(producto.codigo_alfa)
         
@@ -82,14 +82,23 @@ def crear_productos_desde_csv(csv_content: str):
     finally:
         db.close()
 
-def crear_productos_desde_xlsx(xlsx_content: bytes):
+def crear_productos_desde_xlsx(xlsx_content: UploadFile = File(...)):
     conn = conectar_db()
     db = conn.cursor()
     productos_creados = []
     try:
         df = pd.read_excel(xlsx_content)
         for _, row in df.iterrows():
-            producto = ProductoCreate(**row.to_dict())
+            producto_data = row.to_dict()
+            producto_data['codigo_alfa'] = producto_data.get('codigo_alfa') if pd.notna(producto_data.get('codigo_alfa')) else None
+            if producto_data['codigo_alfa'] is None:
+                continue  # Skip products with invalid codigo_alfa
+            producto_data['codigo_barras'] = producto_data.get('codigo_barras') if pd.notna(producto_data.get('codigo_barras')) else None
+            producto_data['descripcion'] = producto_data.get('descripcion') if pd.notna(producto_data.get('descripcion')) else None
+            producto_data['precio'] = producto_data.get('precio') if pd.notna(producto_data.get('precio')) else None
+            producto_data['proveedor_codigo'] = str(producto_data.get('proveedor_codigo')) if pd.notna(producto_data.get('proveedor_codigo')) else None
+            producto_data['proveedor_nombre'] = producto_data.get('proveedor_nombre') if pd.notna(producto_data.get('proveedor_nombre')) else None
+            producto = ProductoCreate(**producto_data)
             # Verificar si el código_alfa ya existe
             db.execute("SELECT id FROM producto WHERE codigo_alfa = ?", (producto.codigo_alfa,))
             if db.fetchone():
@@ -99,7 +108,7 @@ def crear_productos_desde_xlsx(xlsx_content: bytes):
             db.execute("""
                 INSERT INTO producto (codigo_alfa, codigo_barras, descripcion, precio, proveedor_codigo, proveedor_nombre)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (producto.codigo_alfa, producto.codigo_barras, producto.descripcion, producto.precio, producto.proveedor_codigo, producto.proveedor_nombre))
+            """, (producto.codigo_alfa, producto.codigo_barras, producto.descripcion, producto.precio, str(producto.proveedor_codigo), producto.proveedor_nombre))
             
             productos_creados.append(producto.codigo_alfa)
         

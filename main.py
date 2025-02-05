@@ -101,6 +101,8 @@ async def crear_productos_archivo(file: UploadFile = File(...)):
             result = producto_service.crear_productos_desde_csv(content.decode("utf-8"))
         elif file.filename.endswith('.xlsx'):
             result = producto_service.crear_productos_desde_xlsx(content)
+        elif file.filename.endswith('.XLSX'):
+            result = producto_service.crear_productos_desde_xlsx(content)
         else:
             raise HTTPException(status_code=400, detail="Formato de archivo no soportado")
         
